@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (11.3.rel1)
+# Toolchain: GNU Tools for STM32 (12.3.rel1)
 ################################################################################
 
 -include ../makefile.init
@@ -67,8 +67,8 @@ all: main-build
 main-build: F411RE_RTOS_ACC.elf secondary-outputs
 
 # Tool invocations
-F411RE_RTOS_ACC.elf F411RE_RTOS_ACC.map: $(OBJS) $(USER_OBJS) /home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/F411RE_RTOS_ACC/STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "F411RE_RTOS_ACC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/F411RE_RTOS_ACC/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="F411RE_RTOS_ACC.map" -Wl,--gc-sections -static -u _printf_float -u _scanf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+F411RE_RTOS_ACC.elf F411RE_RTOS_ACC.map: $(OBJS) $(USER_OBJS) /home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/RTOS_ACC/STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "F411RE_RTOS_ACC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/RTOS_ACC/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="F411RE_RTOS_ACC.map" -Wl,--gc-sections -static -u _printf_float -u _scanf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
