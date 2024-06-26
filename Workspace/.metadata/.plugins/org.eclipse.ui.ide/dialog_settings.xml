@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="ExternalProjectImportWizard">
+		<item key="WizardProjectsImportPage.STORE_NESTED_PROJECTS" value="true"/>
+	</section>
+	<section name="SmartImportWizard">
+		<item key="SmartImportRootWizardPage.STORE_HIDE_ALREADY_OPEN" value="false"/>
+		<item key="SmartImportRootWizardPage.STORE_CLOSE_IMPORTED" value="false"/>
+		<item key="SmartImportRootWizardPage.STORE_NESTED_PROJECTS" value="true"/>
+		<item key="SmartImportRootWizardPage.STORE_CONFIGURE_NATURES" value="true"/>
+		<list key="org.eclipse.ui.internal.wizards.datatransfer.SmartImportRootWizardPage.knownSources">
+			<item value="/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/F411RE_Octave_Fs256k"/>
+			<item value="/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/L452_ACC"/>
+			<item value="/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/RTOS_ACC"/>
+			<item value="/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/F411RE_RTOS_ACC"/>
+			<item value="/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/BLE_AT_Server"/>
+			<item value="/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/BLE_AT_Server/STM32CubeIDE"/>
+		</list>
+	</section>
+	<section name="CleanDialogSettings">
+		<item key="BUILD_NOW" value="true"/>
+		<item key="BUILD_ALL" value="true"/>
+		<item key="TOGGLE_SELECTED" value="false"/>
+		<item key="DIALOG_WIDTH" value="563"/>
+		<item key="DIALOG_HEIGHT" value="447"/>
+		<item key="DIALOG_FONT_NAME" value="1|Ubuntu|11.0|0|GTK|1|"/>
+	</section>
+</section>

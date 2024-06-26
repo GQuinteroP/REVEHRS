@@ -54,6 +54,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+LPTIM_HandleTypeDef hlptim1;
+
 RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi1;
@@ -62,8 +64,6 @@ DMA_HandleTypeDef hdma_spi1_rx;
 DMA_HandleTypeDef hdma_spi1_tx;
 DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi2_tx;
-
-TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_usart1_tx;
@@ -129,26 +129,6 @@ osThreadId_t usb_taskHandle;
 const osThreadAttr_t usb_task_attributes = { .name = "usb_task", .stack_size = 1024 * 4,
 		.priority = (osPriority_t) osPriorityAboveNormal,};
 
-/* Definitions for IoT_task */
-osThreadId_t IoT_taskHandle;
-const osThreadAttr_t IoT_task_attributes = { .name = "IoT_task", .stack_size = 512 * 4,
-		.priority = (osPriority_t) osPriorityNormal,};
-
-/* Definitions for offline_task */
-osThreadId_t offline_taskHandle;
-const osThreadAttr_t offline_task_attributes = { .name = "offline_task", .stack_size = 512 * 4,
-		.priority = (osPriority_t) osPriorityNormal,};
-
-/* Definitions for gnss_task */
-osThreadId_t gnss_taskHandle;
-const osThreadAttr_t gnss_task_attributes = { .name = "gnss_task", .stack_size = 512 * 4,
-		.priority = (osPriority_t) osPriorityNormal,};
-
-const osThreadAttr_t data_send_task_attributes = { .name = "task_data_send", .stack_size = 512 * 4,
-		.priority = (osPriority_t) osPriorityNormal,};
-
-const osThreadAttr_t data_store_task_attributes = { .name = "task_data_store", .stack_size = 512 * 4,
-		.priority = (osPriority_t) osPriorityNormal,};
 
 RTC_TimeTypeDef rtc_time;
 RTC_DateTypeDef rtc_date;
@@ -352,21 +332,16 @@ static void MX_DMA_Init(void);
 static void MX_RTC_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_LPTIM1_Init(void);
 static void MX_SPI2_Init(void);
-static void MX_TIM16_Init(void);
 void task_main(void *argument);
 void sampling_task(void *argument);
 
 /* USER CODE BEGIN PFP */
-void task_gnss(void *argument);
 void kappa(const char *fmt, ...);
-void stopSampling();
-void restart_UART_DMA();
 void buffer_show();
 void loadValues();
 void store_config_64(uint64_t config_data);
-void green_led(uint8_t status);
-void red_led(uint8_t status);
 void load_config(float32_t *cal, uint8_t *gps_enabled, uint8_t *lpwa_enabled,
 			uint8_t *octave, uint16_t *RecTime, uint16_t	*LeqTime);
 /* USER CODE END PFP */
@@ -410,62 +385,31 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-	#ifdef LOW_FREQ
 	  MX_GPIO_Init();
+	  MX_DMA_Init();
+	  MX_RTC_Init();
 	  MX_USART1_UART_Init();
-
+	  MX_SPI1_Init();
+	  MX_SPI2_Init();
+	  MX_LPTIM1_Init();
 	  HAL_Delay(100);
 	  SET_BIT(PWR->CR2, PWR_PVM_1);
 	  HAL_Delay(500);
 	  if (!HAL_IS_BIT_SET(PWR->SR2, PWR_SR2_PVMO1)) //Detect USBVDD
 	  {
 		  kappa("\r\n USB ON");
-		  SystemClock_Config_HIGH();
-		  MX_GPIO_Init();
-		  MX_DMA_Init();
-		  MX_RTC_Init();
-		  MX_USART1_UART_Init();
-		  MX_SPI1_Init();
 		  MX_USB_DEVICE_Init();
+
 	  }else
 	  {
 		  kappa("\r\n USB OFF");
-		  CLEAR_BIT(PWR->CR2, PWR_PVM_1);
-		  #ifdef PSD_ACC_DEC
-		  	  SystemClock_Config_LOW();	//16 MHz
-		  	  MX_GPIO_Init();
-			  MX_DMA_Init();
-			  MX_RTC_Init();
-		  #else
-		  	  SystemClock_Config_LOW_IIR();	//25 MHz
-		  	  MX_GPIO_Init();
-			  MX_DMA_Init();
-			  MX_LPUART1_UART_Init();
-			  MX_RTC_Init();
-		  	  MX_SAI1_Init_Low_IIR();
-		  #endif
-		  MX_USART1_UART_Init();
-		  MX_SPI1_Init();
 	  }
-	#else
-	  //SystemClock_Config_HIGH();
-	  MX_GPIO_Init();
-	  MX_DMA_Init();
-	  MX_RTC_Init();
-	  MX_USART1_UART_Init();
-	  MX_SPI1_Init();
-	  SET_BIT(PWR->CR2, PWR_PVM_1);
-	  HAL_Delay(500);
-	  if (!HAL_IS_BIT_SET(PWR->SR2, PWR_SR2_PVMO1)) //Detect USBVDD
-		  MX_USB_DEVICE_Init();
-	#endif
 
   //GPIO_ConfigAN();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_SPI2_Init();
-  MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -570,18 +514,12 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSE
                               |RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-  RCC_OscInitStruct.HSI48State = RCC_HSI48_OFF;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 2;
-  RCC_OscInitStruct.PLL.PLLN = 14;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV19;
-  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV8;
-  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV8;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -591,12 +529,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;//RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -604,6 +542,40 @@ void SystemClock_Config(void)
   /** Enables the Clock Security System
   */
   HAL_RCC_EnableCSS();
+}
+
+/**
+  * @brief LPTIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_LPTIM1_Init(void)
+{
+
+  /* USER CODE BEGIN LPTIM1_Init 0 */
+
+  /* USER CODE END LPTIM1_Init 0 */
+
+  /* USER CODE BEGIN LPTIM1_Init 1 */
+
+  /* USER CODE END LPTIM1_Init 1 */
+  hlptim1.Instance = LPTIM1;
+  hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
+  hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV1;
+  hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
+  hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
+  hlptim1.Init.UpdateMode = LPTIM_UPDATE_ENDOFPERIOD;
+  hlptim1.Init.CounterSource = LPTIM_COUNTERSOURCE_INTERNAL;
+  hlptim1.Init.Input1Source = LPTIM_INPUT1SOURCE_GPIO;
+  hlptim1.Init.Input2Source = LPTIM_INPUT2SOURCE_GPIO;
+  if (HAL_LPTIM_Init(&hlptim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN LPTIM1_Init 2 */
+
+  /* USER CODE END LPTIM1_Init 2 */
+
 }
 
 /**
@@ -683,7 +655,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -741,38 +713,6 @@ static void MX_SPI2_Init(void)
 }
 
 /**
-  * @brief TIM16 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM16_Init(void)
-{
-
-  /* USER CODE BEGIN TIM16_Init 0 */
-
-  /* USER CODE END TIM16_Init 0 */
-
-  /* USER CODE BEGIN TIM16_Init 1 */
-
-  /* USER CODE END TIM16_Init 1 */
-  htim16.Instance = TIM16;
-  htim16.Init.Prescaler = 0;
-  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 64000;
-  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim16.Init.RepetitionCounter = 0;
-  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM16_Init 2 */
-
-  /* USER CODE END TIM16_Init 2 */
-
-}
-
-/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -788,7 +728,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 400000;
+  huart1.Init.BaudRate = 32000;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -830,6 +770,12 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+  /* DMA2_Channel3_IRQn interrupt configuration */
+  NVIC_SetPriority(DMA2_Channel3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),6, 0));
+  NVIC_EnableIRQ(DMA2_Channel3_IRQn);
+  /* DMA2_Channel4_IRQn interrupt configuration */
+  NVIC_SetPriority(DMA2_Channel4_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),5, 0));
+  NVIC_EnableIRQ(DMA2_Channel4_IRQn);
   /* DMA2_Channel6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Channel6_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Channel6_IRQn);
@@ -1004,13 +950,13 @@ osStatus_t eeprom_read(uint8_t *data_out)
 {
 	if (eeprom_data_len == 0)
 	{
-		//kappa("\r\nEEPROM is empty!");
+		kappa("\r\nEEPROM is empty!");
 		return osError;
 	}
 
 	if(Single_Read(data_out, eeprom_read_idx*M95P32_PAGESIZE, block_len*2)!=M95_OK)
 	{
-		//kappa("\r\neeprom_read ERROR!");
+		kappa("\r\neeprom_read ERROR!");
 		return osError;
 	}
 
@@ -1035,6 +981,7 @@ void task_usb(void *argument)
 	RTC_TimeTypeDef time;
 	RTC_DateTypeDef date;
 
+	uint8_t currTimeBuff[50];
 	/* Infinite loop */
 	for(;;)
 	{
@@ -1044,6 +991,7 @@ void task_usb(void *argument)
 		#endif
 
 		kappa("\r\nQueue out [%d]: ", USB_msgs.bufferLength);
+
 		while(USB_msgs.bufferLength>0)
 		{
 			Queue_get(&USB_msgs, usb_cmd);
@@ -1054,16 +1002,16 @@ void task_usb(void *argument)
 		switch(usb_cmd[1])
 		{
 			case 0xFF:	//Validate PC connection sending the random bytes back
-				CDC_Transmit_FS(&usb_cmd[1], usb_cmd[0]);
 				#ifdef debug_USB
 					kappa("\r\nConnected!");
 				#endif
+				CDC_Transmit_FS(&usb_cmd[1], usb_cmd[0]);
 			break;
 
 			case 0x01:	//Get EEPROM data length
 				data_len = get_eeprom_data_len();
 				#ifdef debug_USB
-					kappa("\r\nData_len: %d", data_len);
+					kappa("\r\nEEPROM Length: %d", data_len);
 				#endif
 				CDC_Transmit_FS((uint8_t*)&data_len, 2);
 			break;
@@ -1072,7 +1020,7 @@ void task_usb(void *argument)
 				memcpy(&data_len, &usb_cmd[2], 2);
 				Single_Read(eeprom_aux_buffer, data_len*M95P32_PAGESIZE, block_len*2);
 				#ifdef debug_USB
-					kappa("\r\nSel data: %d", data_len);
+					kappa("\r\EEPROM Length: %d", data_len);
 					kappa("\r\nRead: ");
 					for(int ii=0;ii<block_len*2;ii++)
 						kappa("%02x", eeprom_aux_buffer[ii]);
@@ -1253,21 +1201,77 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc)
 	HAL_RTCEx_DeactivateWakeUpTimer(hrtc);
 }
 
+void SystemClock_Config_Low(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure LSE Drive Capability
+  */
+  HAL_PWR_EnableBkUpAccess();
+  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 2;
+  RCC_OscInitStruct.PLL.PLLN = 8;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV19;
+  RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV8;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV8;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Enables the Clock Security System
+  */
+  HAL_RCC_EnableCSS();
+}
+
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-	osSemaphoreRelease(sem_SPI_DMAHandle);
-
-	//TODO: IMPLEMENT SPI port identification
-	//osSemaphoreRelease(sem_mem_writeHandle);
+	//kappa("\r\nSPI Tx: %x-%x-%x", hspi, &hspi1, &hspi2);
+	if(hspi == &hspi2)
+		osSemaphoreRelease(sem_SPI_DMAHandle);
+	else if(hspi == &hspi1)
+		osSemaphoreRelease(sem_mem_writeHandle);
 	//kappa("\r\nSPI Tx!");
 }
 
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-	osSemaphoreRelease(sem_SPI_DMAHandle);
 
-	//TODO: IMPLEMENT SPI port identification
-	//osSemaphoreRelease(sem_mem_readHandle);
+	if(hspi == &hspi2)
+		osSemaphoreRelease(sem_SPI_DMAHandle);
+	else if(hspi == &hspi1)
+		osSemaphoreRelease(sem_mem_readHandle);
 	//kappa("\r\nSPI Rx!");
 }
 
@@ -1390,12 +1394,20 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
 		data_ctr = 0;
 
-		HAL_TIM_Base_Start_IT(&htim16);
+		SystemClock_Config_Low();
+		MX_GPIO_Init();
+		MX_DMA_Init();
+		MX_RTC_Init();
+		MX_USART1_UART_Init();
+		MX_SPI1_Init();
+	    MX_SPI2_Init();
+	    MX_LPTIM1_Init();
+		HAL_LPTIM_Counter_Start_IT(&hlptim1, 15999);
 		kappa("Iniciado\r\n");
 	}
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim)
 {
 	//kappa("Timer\r\n");
 	if(data_ctr < data_buff_len)
@@ -1404,7 +1416,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 	}else
 	{
-		HAL_TIM_Base_Stop_IT(&htim16);
+		HAL_LPTIM_Counter_Stop_IT(&hlptim1);
 		osSemaphoreRelease(sem_processingHandle);
 	}
 }
@@ -1415,6 +1427,7 @@ void postprocessing()
 	float	output_INT ; //envio de datos
 	float	output_Final ; //envío de datos
 	float	Octavas_Final ; //envío de datos
+
 	arm_rfft_fast_instance_f32 S;	//for FFT
 	arm_rfft_fast_instance_f32 K;	// for InverseFFT
 	arm_rfft_fast_instance_f32 M;	// for third-octave FFT
@@ -1683,30 +1696,39 @@ void task_main(void *argument)
   /* USER CODE BEGIN 5 */
 
 	kappa("\r\n****STARTING...!****");
-
+	//kappa("\r\nEEPROM Length: %d", get_eeprom_data_len());
 	/* Infinite loop */
-	//HAL_LPTIM_Counter_Start_IT(&hlptim1, 797);	//DEBUG - 0.01 ms
-	//TODO:Find out why this helps to start with low current consumption
+	vTaskDelay(500);
 	if (hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED)
 	{
-		kappa("\r\nUSB (%d, %d)",  hUsbDeviceFS.ep0_state, hUsbDeviceFS.dev_state);
 		usb_taskHandle = osThreadNew(task_usb, NULL, &usb_task_attributes);
 		USB_plugged = 1;
-
-	} else {
-
+		kappa("\r\nUSB MODE(%d, %d)",  hUsbDeviceFS.ep0_state, hUsbDeviceFS.dev_state);
+		for (;;)
+		{}
 	}
 
 	vTaskDelay(1000);
-	kappa("Program started!\r\n");
 	ADXL355_Init();
 	vTaskDelay(100);
 	ADXL355_Start_Sensor();
 	kappa("\r\nSYSTEM READY!\r\n");
 
+	HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+
 	for (;;)
 	{
 		osSemaphoreAcquire(sem_processingHandle, osWaitForever);
+
+		SystemClock_Config();
+		MX_GPIO_Init();
+		MX_DMA_Init();
+		MX_RTC_Init();
+		MX_USART1_UART_Init();
+		MX_SPI1_Init();
+		MX_SPI2_Init();
+		MX_LPTIM1_Init();
+
 		kappa("\r\nProcessing data!");
 
 		postprocessing();
@@ -1716,8 +1738,8 @@ void task_main(void *argument)
 		HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 		HAL_SuspendTick();
-		HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-		//HAL_PWREx_EnterSTOP2Mode(PWR_LOWPOWERREGULATOR_ON, 2);
+		//HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+		HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
 	}
   /* USER CODE END 5 */
 }

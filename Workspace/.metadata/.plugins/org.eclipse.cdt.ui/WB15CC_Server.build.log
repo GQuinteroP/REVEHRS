@@ -1,0 +1,19 @@
+09:18:16 **** Incremental Build of configuration Debug for project WB15CC_Server ****
+make -j12 all 
+arm-none-eabi-gcc -o "WB15CC_Server.elf" @"objects.list"   -mcpu=cortex-m4 -T"/home/ubuntu/DRIVE/UPC/Desarrollos/REVEHRS/Programas/STM32/WB15CC_Server/STM32WB55RGVX_FLASH.ld" --specs=nosys.specs -Wl,-Map="WB15CC_Server.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: WB15CC_Server.elf
+ 
+arm-none-eabi-size  WB15CC_Server.elf 
+arm-none-eabi-objdump -h -S WB15CC_Server.elf  > "WB15CC_Server.list"
+arm-none-eabi-objcopy  -O binary WB15CC_Server.elf  "WB15CC_Server.bin"
+   text	   data	    bss	    dec	    hex	filename
+  61192	   2385	   8455	  72032	  11960	WB15CC_Server.elf
+Finished building: default.size.stdout
+ 
+Finished building: WB15CC_Server.bin
+ 
+Finished building: WB15CC_Server.list
+ 
+
+09:18:17 Build Finished. 0 errors, 0 warnings. (took 377ms)
+

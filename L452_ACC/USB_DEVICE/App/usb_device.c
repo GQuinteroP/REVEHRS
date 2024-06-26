@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2023 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -91,8 +91,8 @@ void MX_USB_DEVICE_Init(void)
   }
   /* USER CODE BEGIN USB_DEVICE_Init_PostTreatment */
 	} else
-		CLEAR_BIT(PWR->CR2, PWR_PVM_1);
-	vTaskDelay(300);
+			CLEAR_BIT(PWR->CR2, PWR_PVM_1);
+		vTaskDelay(300);
   /* USER CODE END USB_DEVICE_Init_PostTreatment */
 }
 

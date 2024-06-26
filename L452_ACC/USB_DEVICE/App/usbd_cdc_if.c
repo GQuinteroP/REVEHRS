@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2023 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -31,7 +31,6 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
 extern struct BUFF USB_msgs;
 /* USER CODE END PV */
 
@@ -129,8 +128,7 @@ static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
 static int8_t CDC_TransmitCplt_FS(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
-extern void kappa(const char *fmt, ...);
-extern osStatus_t Queue_put(struct BUFF *queue, uint8_t *msg_in, uint8_t msg_len);
+
 /* USER CODE END PRIVATE_FUNCTIONS_DECLARATION */
 
 /**
@@ -264,29 +262,19 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
 	osStatus_t res1 = osOK, res2 = osOK;
-	#ifdef debug_USB
-		kappa("\r\nLen: %d - [", (*Len));
-		for(int ii =0;ii<(*Len);ii++)
-			kappa("%02x", Buf[ii]);
-		kappa("]\r\n");
-	#endif
+		#ifdef debug_USB
+			kappa("\r\nLen: %d - [", (*Len));
+			for(int ii =0;ii<(*Len);ii++)
+				kappa("%02x", Buf[ii]);
+			kappa("]\r\n");
+		#endif
 
-	res1 = Queue_put(&USB_msgs, Buf, (*Len));
-	res2 = osSemaphoreRelease(sem_usbHandle);
+		res1 = Queue_put(&USB_msgs, Buf, (*Len));
+		res2 = osSemaphoreRelease(sem_usbHandle);
 
-	/*if(*Len == 4)
-		CDC_Transmit_FS(Buf, *Len);
-	else if(*Len == 3)
-	{
-		memcpy(usb_cmd, Buf, 3);
-		res = osSemaphoreRelease(sem_usbHandle);
-		if(res!=osOK)
-			return (USBD_FAIL);
-	}*/
-
-	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, Buf);
-	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-	return (USBD_OK | res1 | res2);
+  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  return (USBD_OK);
   /* USER CODE END 6 */
 }
 

@@ -62,7 +62,6 @@ uint32_t volatile ui32SensorX;
 uint32_t volatile ui32SensorY;
 uint32_t volatile ui32SensorZ;
 uint32_t volatile ui32SensorT;
-int debug = 0;
 
 volatile uint32_t ui32timer_counter = 0;
 

@@ -122,20 +122,10 @@ void Error_Handler(void);
 #define		cal_def			-11.5	//Kind of pre-calibrated value
 #define		cal_def_LF		-15		//Kind of pre-calibrated value
 
-#define 	data_buff_len		512
-
-//DEBUG AND TESTING DEFINES
-//#define 	LOW_POWER		//Enable low power mode
-//#define		LOW_FREQ		//Enable processor's clock frequency reduction when no USB is detected
-#define		MIC				//Work with mic signal or sine
-//#define		debug_GNSS		0//Print GNSS information (0 - Only NGGA string, 1 - Time, Lat, Lon, Lock, and Sat)
-//#define		debug_USB
-#define		debug_LPWA
-#define		debug_Leq		0//Print Leq timing, TOB_LF (0), TOB (1) and LPWA (2)
-
-#define 	PSD_ACC_DEC
-//#define 	IIR_DEC
-
+//#define 	data_buff_len		512
+#define 	data_buff_len		2048
+#define		debug
+#define debug_USB
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

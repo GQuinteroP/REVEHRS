@@ -1,7 +1,7 @@
-../Core/Src/ADXL355.c:79:6:ADXL355_Init	5
-../Core/Src/ADXL355.c:111:6:ADXL355_Start_Sensor	1
-../Core/Src/ADXL355.c:128:6:ADXL355_Stop_Sensor	1
-../Core/Src/ADXL355.c:144:6:ADXL355_Data_Scan	1
-../Core/Src/ADXL355.c:160:9:ADXL355_Acceleration_Data_Conversion	2
-../Core/Src/ADXL355.c:178:6:ADXL355_Set_Range	5
-../Core/Src/ADXL355.c:203:10:ADXL355_Read_Range	4
+../Core/Src/ADXL355.c:78:6:ADXL355_Init	5
+../Core/Src/ADXL355.c:110:6:ADXL355_Start_Sensor	1
+../Core/Src/ADXL355.c:127:6:ADXL355_Stop_Sensor	1
+../Core/Src/ADXL355.c:143:6:ADXL355_Data_Scan	1
+../Core/Src/ADXL355.c:159:9:ADXL355_Acceleration_Data_Conversion	2
+../Core/Src/ADXL355.c:177:6:ADXL355_Set_Range	5
+../Core/Src/ADXL355.c:202:10:ADXL355_Read_Range	4
